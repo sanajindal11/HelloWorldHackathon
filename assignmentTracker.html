@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Assignments - Todo List</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0891b2',
+            'primary-foreground': '#ffffff',
+            background: '#fefefe',
+            foreground: '#1f2937',
+            'muted-foreground': '#6b7280',
+            accent: '#06b6d4',
+            'accent-foreground': '#ffffff',
+            card: '#ffffff',
+            'card-foreground': '#1f2937',
+            border: '#e5e7eb'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .card { background: white; border: 1px solid #e5e7eb; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card:hover { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .badge { display: inline-flex; align-items: center; border-radius: 9999px; border: 1px solid; padding: 0.25rem 0.75rem; font-size: 0.75rem; font-weight: 500; }
+    .select { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; }
+  </style>
+</head>
+<body class="min-h-screen bg-background">
+
+  <!-- Header -->
+  <header class="bg-primary text-primary-foreground shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
+      <h1 class="text-3xl font-bold">My Assignments</h1>
+      <button class="bg-accent hover:bg-accent/90 text-accent-foreground px-4 py-2 rounded-md flex items-center gap-2 transition-colors">
+        Add Assignment
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <!-- Filter Section -->
+    <div class="flex items-center gap-4">
+      <label for="class-filter" class="text-sm font-medium text-foreground">Filter by Class:</label>
+      <select id="class-filter" class="select w-64 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+        <option value="all">All Classes</option>
+      </select>
+    </div>
+
+    <!-- Assignment Cards Grid -->
+    <div id="assignments-grid" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3"></div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="text-center py-12 hidden">
+      <h3 class="text-lg font-medium text-foreground mb-2">No assignments found</h3>
+      <p id="empty-message" class="text-muted-foreground">You have no assignments yet. Click "Add Assignment" to get started.</p>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/ical.js/build/ical.min.js"></script>
+  <script>
+    const assignments = []; // start empty, will fill with Brightspace events
+    let currentFilter = "all";
+
+    // Utility functions
+    function getStatusColor(status){
+      return status==="completed"?"bg-green-100 text-green-800 border-green-200":status==="overdue"?"bg-red-100 text-red-800 border-red-200":"bg-blue-100 text-blue-800 border-blue-200";
+    }
+    function getPriorityColor(priority){ return priority==="high"?"bg-red-500":priority==="medium"?"bg-yellow-500":"bg-green-500"; }
+    function formatDate(date){ return new Date(date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); }
+    function getDaysUntilDue(date){ return Math.ceil((new Date(date)-new Date())/(1000*60*60*24)); }
+
+    function createAssignmentCard(a){
+      const days = getDaysUntilDue(a.dueDate);
+      const status = a.status==="pending"&&days<0?"overdue":a.status || "pending";
+      return `
+        <div class="card hover:shadow-md border-l-4 border-l-primary">
+          <div class="p-4 pb-3">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <h3 class="text-lg font-semibold text-card-foreground mb-1">${a.assignmentName}</h3>
+                <p class="text-sm text-muted-foreground">${a.className}</p>
+              </div>
+              <div class="w-3 h-3 rounded-full ${getPriorityColor(a.priority || "medium")}" title="${a.priority || "medium"} priority"></div>
+            </div>
+          </div>
+          <div class="px-4 pb-4 flex items-center justify-between">
+            <span class="badge ${getStatusColor(status)}">${status}</span>
+            <span class="text-sm">${days<0?`${Math.abs(days)} days overdue`:(days===0?"Due today":`${days} days remaining`)}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAssignments(){
+      const filtered = currentFilter==="all"?assignments:assignments.filter(a=>a.className===currentFilter);
+      const grid = document.getElementById("assignments-grid");
+      const emptyState = document.getElementById("empty-state");
+      const emptyMessage = document.getElementById("empty-message");
+      if(filtered.length===0){
+        grid.innerHTML="";
+        emptyState.classList.remove("hidden");
+        emptyMessage.textContent=currentFilter==="all"?'You have no assignments yet. Click "Add Assignment" to get started.':`No assignments found for ${currentFilter}.`;
+      } else {
+        emptyState.classList.add("hidden");
+        grid.innerHTML = filtered.map(createAssignmentCard).join("");
+      }
+    }
+
+    function populateClassFilter(){
+      const select = document.getElementById("class-filter");
+      const unique = [...new Set(assignments.map(a=>a.className))];
+      select.innerHTML = '<option value="all">All Classes</option>';
+      unique.forEach(c => { const o = document.createElement("option"); o.value=c; o.textContent=c; select.appendChild(o); });
+    }
+
+    document.getElementById("class-filter").addEventListener("change", e=>{currentFilter=e.target.value;renderAssignments();});
+
+    // --- Fetch Brightspace iCal and populate assignments ---
+    const icalUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent("https://purdue.brightspace.com/d2l/le/calendar/feed/user/feed.ics?token=ab28t5xk5jmwlg2k54d7a");
+
+    fetch(icalUrl)
+      .then(res => res.ok ? res.text() : Promise.reject("Network response not ok"))
+      .then(data => {
+        if(!data.includes("BEGIN:VCALENDAR")) throw new Error("Invalid iCal content");
+        const jcal = ICAL.parse(data);
+        const comp = new ICAL.Component(jcal);
+        const events = comp.getAllSubcomponents("vevent");
+
+        events.forEach(ev => {
+          const summary = ev.getFirstPropertyValue("summary");
+          const location = ev.getFirstPropertyValue("location");
+          const dt = ev.getFirstPropertyValue("dtstart");
+          if(!dt) return;
+          const dueDate = dt.toJSDate();
+          if(dueDate >= new Date()){
+            const className = location || summary.split(" - ")[0] || "Brightspace";
+            assignments.push({
+              assignmentName: summary,
+              dueDate: dueDate,
+              status: "pending",
+              priority: "medium",
+              className: className
+            });
+          }
+        });
+
+        populateClassFilter();
+        renderAssignments();
+      })
+      .catch(err => { console.error(err); });
+  </script>
+
+</body>
+</html>
