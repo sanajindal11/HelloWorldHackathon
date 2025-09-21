@@ -1,0 +1,15 @@
+{
+  "name": "Assignment Tracker",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": ["storage"],
+  "web_accessible_resources": [
+    {
+      "resources": ["extension_ready.csv"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

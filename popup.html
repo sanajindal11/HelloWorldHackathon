@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Assignment Tracker</title>
+    <style>
+      body { font-family: Arial, Helvetica, sans-serif; padding: 15px; width: 300px; }
+      h1 { font-size: 18px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #ccc; padding: 5px; font-size: 12px; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <h1>Upload Grade CSV</h1>
+    <input type="file" id="upload" accept=".csv" />
+    <div id="output"></div>
+
+    <script src="papaparse.min.js"></script>
+    <script src="assignment.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
